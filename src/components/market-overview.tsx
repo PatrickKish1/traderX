@@ -3,7 +3,7 @@
 import { CryptoData } from "@/lib/types/crypto";
 import Image from "next/image";
 
-interface MarketOverviewProps {
+export interface MarketOverviewProps {
   cryptoData: CryptoData[];
   onSelectCrypto: (symbol: string) => void;
   selectedCrypto: string;

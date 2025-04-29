@@ -15,7 +15,7 @@ const NewsWidget: React.FC = () => {
         setNews(newsData);
         setIsLoading(false);
       } catch (error) {
-        console.error('Failed to load news:', error);
+        console.error('Failed to load news data:', error);
         setIsLoading(false);
       }
     };

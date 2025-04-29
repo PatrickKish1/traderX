@@ -4,12 +4,13 @@ import { OnchainKitProvider } from '@coinbase/onchainkit';
 import { base } from 'wagmi/chains';
 
 const COINBASE_TOKEN = `${process.env.COINBASE_TOKEN}`;
+const PROJECT_ID = `${process.env.BASE_PROJECT_ID}`;
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <OnchainKitProvider
       apiKey={`${COINBASE_TOKEN}`}
-      projectId="1d0226d4-9f84-48d6-9486-b4381e220d9f"
+      projectId={`${PROJECT_ID}`}
       chain={base}
       config={{
         appearance: {

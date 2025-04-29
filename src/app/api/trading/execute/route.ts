@@ -1,6 +1,8 @@
 import { TradeRequest, TradeResponse } from '@/lib/types/crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
+
+
 export async function POST(request: NextRequest) {
   try {
     const tradeRequest: TradeRequest = await request.json();
@@ -13,10 +15,6 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // In a real implementation, you would call a trading API or service
-    // For this example, we'll simulate a trade response
-    
-    // Get the current price from CoinGecko
     const coinId = getFullCoinName(tradeRequest.token);
     const response = await fetch(
       `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd`,
@@ -37,11 +35,10 @@ export async function POST(request: NextRequest) {
       ? parseFloat(tradeRequest.price) 
       : currentPrice;
     
-    // Calculate trade details
     const tokenAmount = parseFloat(tradeRequest.token_amount);
     const lotSize = tradeRequest.lot_size || 1;
     const totalValue = tokenAmount * price * lotSize;
-    const fee = totalValue * 0.001; // 0.1% fee
+    const fee = totalValue * 0.001;
     
     // Create a mock trade response
     const tradeResponse: TradeResponse = {
@@ -60,7 +57,6 @@ export async function POST(request: NextRequest) {
     // For example, by calling a DEX API or smart contract
     
     // For Universal.xyz API integration, you would use:
-    /*
     const universalResponse = await fetch('/api/proxy', {
       method: 'POST',
       headers: {
@@ -93,10 +89,9 @@ export async function POST(request: NextRequest) {
     });
     
     const universalData = await universalResponse.json();
-    */
+    console.error(`${universalData}`)
     
     // For 0x API integration, you would use:
-    /*
     const zeroExResponse = await fetch('/api/proxy', {
       method: 'POST',
       headers: {
@@ -123,7 +118,7 @@ export async function POST(request: NextRequest) {
     });
     
     const zeroExData = await zeroExResponse.json();
-    */
+    console.error(`${zeroExData}`)
     
     return NextResponse.json(tradeResponse);
   } catch (error) {

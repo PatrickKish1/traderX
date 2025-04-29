@@ -39,7 +39,6 @@ const OrderBookTrading: React.FC<OrderBookTradingProps> = ({
 }) => {
   const { address, isConnected } = useAccount();
   
-  // Order form state
   const [orderType, setOrderType] = useState<'MARKET' | 'LIMIT' | 'STOP'>('LIMIT');
   const [side, setSide] = useState<'BUY' | 'SELL'>('BUY');
   const [price, setPrice] = useState<string>('');

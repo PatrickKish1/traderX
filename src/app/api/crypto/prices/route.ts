@@ -1,5 +1,6 @@
 
 import { NextResponse } from 'next/server';
+
 export async function GET() {
   try {
     const response = await fetch(
@@ -8,7 +9,7 @@ export async function GET() {
         headers: {
           'Accept': 'application/json',
         },
-        next: { revalidate: 60 }, // Cache for 60 seconds
+        next: { revalidate: 60 },
       }
     );
     if (!response.ok) {

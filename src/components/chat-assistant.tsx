@@ -549,7 +549,6 @@ ${statusEmoji} **${signal.token} ${signal.type}** (${new Date(signal.timestamp).
       // Map complex order types to basic BUY/SELL - explicitly casting to the literal type
       const baseType: 'BUY' | 'SELL' = tradeDetails.type.includes('BUY') ? 'BUY' : 'SELL';
       
-      // Execute the trade
       const tradeRequest = {
         type: baseType,
         token: baseToken,

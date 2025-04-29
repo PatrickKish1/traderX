@@ -39,7 +39,6 @@ const TokenSwap: React.FC = () => {
       });
       
       try {
-        // Fetch popular tokens on Base
         const tokens = await Promise.all([
           getTokens({ search: 'ETH' }),
           getTokens({ search: 'USDC' }),

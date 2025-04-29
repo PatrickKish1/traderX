@@ -128,7 +128,7 @@ const Footer = () => {
               Terms of Service
             </Link>
             <Link href="#" className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 text-sm">
-              Cookie Policy
+              Cookie Policy.
             </Link>
           </div>
         </div>

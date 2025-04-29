@@ -17,7 +17,7 @@ import {
 import { useAccount } from 'wagmi';
 import { useTheme } from '@/lib/context/theme-context';
 
-interface WalletConnectionProps {
+export interface WalletConnectionProps {
   className?: string;
 }
 

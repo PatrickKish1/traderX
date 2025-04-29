@@ -20,7 +20,6 @@ const Dashboard = () => {
   const [chatOpen, setChatOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'simple' | 'advanced' | 'swap' | 'game'>('simple');
   
-  // Check for pending trade signal from chat
   useEffect(() => {
     const pendingSignal = localStorage.getItem('pendingTradeSignal');
     if (pendingSignal) {

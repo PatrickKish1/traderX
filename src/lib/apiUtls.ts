@@ -30,7 +30,7 @@ export const fetchCryptoHistory = async (
     return { prices: [], market_caps: [], total_volumes: [] };
   }
 };
-// Fetch latest crypto news
+
 export const fetchCryptoNews = async (): Promise<NewsItem[]> => {
   try {
     const response = await fetch('/api/crypto/news');

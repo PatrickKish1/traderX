@@ -502,7 +502,7 @@ const CryptoGame: React.FC = () => {
       
       <div className="mt-4 text-sm text-gray-400">
         <p>Collect Bitcoin tokens to increase your score. Regular coins are worth 10 points, golden coins are worth 50 points!</p>
-        <p className="mt-1">{`Avoid the red obstacles or it's game over. The game gets faster as your level increases`}.</p>
+        <p className="mt-1">{`Avoid the red obstacles or it's game over. The game gets faster as your level increases.`}.</p>
       </div>
     </div>
   );

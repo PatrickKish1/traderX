@@ -167,7 +167,7 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ cryptoData }) => {
           <Line data={chartData} options={chartOptions} />
         ) : (
           <div className="flex justify-center items-center h-full">
-            <p>No chart data available</p>
+            <p>No chart data available.</p>
           </div>
         )}
       </div>

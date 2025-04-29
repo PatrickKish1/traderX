@@ -1,7 +1,7 @@
 export interface APIError {
-    code: string;    // Error code
-    error: string;   // Error details
-    message: string; // Error message
+    code: string;
+    error: string;
+    message: string;
   }
   // Type guard for API responses
   export function isApiError(response: unknown): response is APIError {

@@ -56,7 +56,7 @@ const TradingInterface: React.FC<TradingInterfaceProps> = ({
         token: cryptoData.symbol.toUpperCase(),
         token_amount: amount,
         pair_token: 'USDC',
-        slippage_bips: 50, // 0.5% slippage
+        slippage_bips: 50,
         blockchain: blockchain,
         user_address: address,
       };

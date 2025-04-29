@@ -54,10 +54,8 @@ function generateMockPrediction(symbol: string, currentPrice: number, timeframe:
   const priceChange = (currentPrice * changePercentage) / 100;
   const predictedPrice = currentPrice + priceChange;
   
-  // Generate a random confidence level between 60% and 90%
   const confidence = 60 + (Math.random() * 30);
   
-  // Generate reasoning based on the prediction
   let reasoning = '';
   if (predictedPrice > currentPrice) {
     reasoning = `Based on technical analysis of ${symbol} price patterns, market sentiment indicators, and on-chain metrics, I'm seeing bullish signals. Trading volume has been increasing, and there's positive momentum in the market. Additionally, recent developments in the ${symbol} ecosystem suggest growing adoption.`;

@@ -20,7 +20,6 @@ const Header = () => {
     { name: 'News', path: '/news' },
     { name: 'Game', path: '/game' },
     { name: 'AI Chat', path: '/chat' },
-    // Trade is conditionally added below if wallet is connected
   ];
 
   return (

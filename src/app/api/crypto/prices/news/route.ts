@@ -1,12 +1,9 @@
 import { NewsItem } from '@/lib/types/crypto';
 import { NextResponse } from 'next/server';
-// This is a mock implementation since we don't have a real news API
+
+
 export async function GET() {
   try {
-    // In a real implementation, you would fetch from a news API
-    // For example: const response = await fetch('https://crypto-news-api.com/news');
-    
-    // For now, we'll return mock data
     const mockNews: NewsItem[] = [
       {
         id: '1',
