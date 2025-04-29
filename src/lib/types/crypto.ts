@@ -53,6 +53,10 @@ export interface NewsItem {
   source: string;
   publishedAt: string;
   summary: string;
+  importance?: number;
+  positiveSentiment?: number;
+  negativeSentiment?: number;
+  currencies?: string[];
 }
 export interface ChatMessage {
   id: string;
