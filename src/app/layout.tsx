@@ -3,11 +3,10 @@ import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import "@/lib/styles/onchainkit-styles.css"
-import '@coinbase/onchainkit/styles.css';
+// import '@coinbase/onchainkit/styles.css';
 import { Providers } from "@/lib/providers"
 import Header from "@/components/header"
 import { ThemeProvider } from "@/lib/context/theme-context"
-// import Footer from "@/components/footer"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
