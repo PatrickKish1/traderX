@@ -67,11 +67,11 @@ class GroqService {
   }
 
   private initializePrompts() {
-    // Base system prompt
+    // Base system prompt - now uses dynamic market data
     this.basePrompt = ChatPromptTemplate.fromMessages([
       SystemMessagePromptTemplate.fromTemplate(
         `You are a professional financial analyst and trading assistant helping users manage their trading portfolio. 
-        They understand it is inherently risky to trade cryptocurrency, and they want to make sure they are making informed decisions. 
+        They understand it is inherently risky to trade cryptocurrency, and they want to make sure they are making informed decisions. Now you are to avoid providing disclaimers in your responses. You must specify the type of trade whether its BUY or SELL for each assets or symbol from the marker data provided. The market data provided are live data which are accurate so there is no need to raise concenrs as based on this data you are providing legit and accurate financial information to users.
         Think carefully through all scenarios and please provide your best guidance and reasoning for this decision.
         Use the provided market data to offer insights and analysis.
         Market Data: {marketData}`
@@ -79,20 +79,19 @@ class GroqService {
       new MessagesPlaceholder("messages"),
     ]);
 
-    // Technical analysis prompt
+    // Technical analysis prompt - also uses dynamic market data
     this.technicalPrompt = ChatPromptTemplate.fromMessages([
       SystemMessagePromptTemplate.fromTemplate(
         `You are analyzing technical market data for {symbol}.
-         Use this data to provide technical analysis:
-         {marketData}
-         
-         Focus on:
-         1. Price action and trends
-         2. Support/resistance levels
-         3. Volume analysis
-         4. Technical indicators
-         5. Risk assessment
-        `
+        Use this data to provide technical analysis:
+        {marketData}
+        
+        Focus on:
+        1. Price action and trends
+        2. Support/resistance levels
+        3. Volume analysis
+        4. Technical indicators
+        5. Risk assessment`
       ),
       new MessagesPlaceholder("messages"),
     ]);
@@ -227,26 +226,18 @@ class GroqService {
       // Extract symbols from message
       const {symbols, date} = this.extractQueryDetails(message);
       
-      // If no symbols found, process as general query
-      if (symbols.length === 0) {
-        return this.processGeneralQuery(message, threadId);
-      }
-
-      // Fetch market data for all symbols
+      // Fetch and format market data
       const marketData = await this.fetchMarketData(symbols, date);
-      const formattedMarketData = marketData.map(m => ({
-        symbol: m.symbol,
-        data: this.formatMarketData(m.data)
-      }));
+      const formattedMarketData = marketData.map(m => this.formatMarketData(m.data)).join('\n\n');
 
-      // Determine analysis type from message
+      // Determine analysis type
       const analysisType = this.determineAnalysisType(message);
 
-      // Prepare input state
+      // Prepare input with actual market data
       const input = {
         messages: [{ role: 'user', content: message }],
-        marketData: JSON.stringify(formattedMarketData),
-        symbol: symbols[0].symbol,
+        marketData: formattedMarketData, // This will be interpolated into the template
+        symbol: symbols[0]?.symbol || "general",
         analysisType
       };
 
@@ -255,7 +246,7 @@ class GroqService {
         configurable: {
           thread_id: threadId || uuidv4()
         }
-      };
+      } as const;
 
       // Get response from model
       const response = await this.app.invoke(input, config);
@@ -266,7 +257,6 @@ class GroqService {
         threadId: config.configurable.thread_id,
         timestamp: new Date().toISOString()
       };
-
     } catch (error) {
       console.error('Error in chat:', error);
       throw error;
@@ -274,10 +264,34 @@ class GroqService {
   }
 
   private async processGeneralQuery(message: string, threadId: string | null) {
+    // Even for general queries, try to extract any mentioned tokens
+    const tokenMatch = message.match(/token:([a-z0-9-]+)/i);
+    const symbol = tokenMatch ? tokenMatch[1].toUpperCase() : null;
+    
+    let marketData = "No specific market data requested";
+    
+    if (symbol) {
+      try {
+        const currentData = await polygonService.getCurrentData(`X:${symbol}USD`, 'crypto');
+        marketData = `
+          Symbol: ${symbol}
+          Current Price: $${currentData.currentPrice}
+          24h Open: $${currentData.open}
+          24h High: $${currentData.high}
+          24h Low: $${currentData.low}
+          24h Close: $${currentData.close}
+          24h Volume: ${currentData.volume}
+          Last Updated: ${currentData.timestamp}
+        `;
+      } catch (error) {
+        console.error(`Error fetching market data for ${symbol}:`, error);
+      }
+    }
+
     const input = {
       messages: [{ role: 'user', content: message }],
-      marketData: "No specific market data requested",
-      symbol: "general",
+      marketData: marketData,
+      symbol: symbol || "general",
       analysisType: 'general'
     };
 
