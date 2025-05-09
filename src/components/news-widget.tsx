@@ -66,7 +66,7 @@ const NewsWidget: React.FC = () => {
                   <h3 className="font-medium">{item.title}</h3>
                   <p className="text-sm text-gray-400 mt-1">{item.summary}</p>
                   <div className="flex items-center mt-2 text-xs text-gray-500">
-                    <span>{item.source}</span>
+                    <span>{item.source.toString()}</span>
                     <span className="mx-2">•</span>
                     <span>{new Date(item.publishedAt).toLocaleDateString()}</span>
                   </div>

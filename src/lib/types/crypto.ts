@@ -45,18 +45,31 @@ export interface TradeResponse {
   expiresAt: string;
   orderType?: 'MARKET' | 'LIMIT' | 'STOP';
 }
-export interface NewsItem {
+
+export interface Source {
   id: string;
+  name: string
+}
+export interface Coins {
+  id: string;
+  name: string
+}
+
+export interface NewsItem {
+  id: string;  // Changed from _id to id
   title: string;
   url: string;
   imageUrl: string;
-  source: string;
+  source: Source;
+  description: string;
   publishedAt: string;
   summary: string;
   importance?: number;
+  overallSentimentScore: number;
   positiveSentiment?: number;
   negativeSentiment?: number;
   currencies?: string[];
+  coins: Coins[];
 }
 export interface ChatMessage {
   id: string;

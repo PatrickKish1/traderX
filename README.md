@@ -1,128 +1,36 @@
-# CryptoTraderX
-
-![CryptoTrader Pro Logo](https://via.placeholder.com/150)
-
-A comprehensive cryptocurrency trading platform combining advanced trading features with AI-powered assistance.
-
-## Features
-
-### Trading Features
-
-- Advanced Order Book Trading
-- Multiple order types (Market, Limit, Stop)
-- Take Profit and Stop Loss functionality
-- Lot size controls (1x, 2x, 5x, 10x multipliers)
-- Trading pairs (BTC/USDC, ETH/USDC, etc.)
-- Real-time market depth visualization
-- Order history tracking
-
-### Token Swapping
-
-- Uniswap integration for token swaps
-- Support for multiple tokens beyond ETH
-- Token search functionality
-- Popular tokens grid for quick selection
-
-### Wallet Integration
-
-- Base blockchain wallet connection
-- Social login options
-- Protected trading pages requiring wallet connection
-- Balance display and transaction capabilities
-
-### AI Assistant
-
-- Intelligent Chat Interface
-- Market analysis and insights
-- Latest crypto news summaries
-- Price predictions with technical analysis
-- Trading signal recommendations with TP/SL
-- Natural language trading commands
-- Conversation history with thread IDs
-
-### Additional Features
-
-- Crypto Catcher Game (interactive crypto-themed game)
-- Light/Dark mode toggle
-- Responsive design for all devices
-
-## Technology Stack
-
-### Frontend
-
-- Next.js for server-side rendering and routing
-- React for component-based UI
-- Tailwind CSS for styling
-- Canvas API for the interactive game
-
-### Blockchain Integration
-
-- OnchainKit for Base blockchain integration
-- Uniswap SDK for token swapping
-- Web3 libraries for wallet connection
-
-### AI Integration
-
-- OpenAI API for the intelligent assistant
-- Custom price prediction algorithms
-- Trading signal generation
+# This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app)
 
 ## Getting Started
 
-### Prerequisites
+First, run the development server:
 
-- Node.js (v18 or higher)
-- npm or yarn or pnpm
-- A Base blockchain wallet (for trading features)
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
 
-### Installation
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-1. Clone the repository
-   ```bash
-   git clone https://github.com/PatrickKish1/traderX.git
-   cd traderX
-   ```
-2. Install dependencies
-   ```bash
-   npm install
-   # or
-   yarn install
-   # or
-   pnpm install
-   ```
-3. Set up environment variables
-   Create a `.env.local` file in the root directory with:
-   ```
-   NEXT_PUBLIC_COINBASE_CLIENT_API_KEY=your_api_key
-   OPENAI_API_KEY=your_openai_api_key
-   BASE_PROJECT_ID=base-project-id
-   ```
-4. Run the development server
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   ```
-5. Open http://localhost:3000 in your browser
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-## Built with Ohara AI
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-This project was built with the assistance of Ohara AI during the Base Buildathon. Ohara helped with:
+## Learn More
 
-- Generating the initial application structure
-- Creating the advanced trading components
-- Implementing the AI assistant functionality
-- Developing the interactive game
-- Integrating Base blockchain features
+To learn more about Next.js, take a look at the following resources:
 
-## License
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-MIT License - see the [LICENSE](LICENSE) file for details.
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Acknowledgments
+## Deploy on Vercel
 
-- Base Blockchain for the infrastructure
-- Coinbase for developer tools
-- Uniswap for swap functionality
-- OpenAI for AI capabilities
-- Ohara AI for development assistance
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

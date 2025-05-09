@@ -1,15 +1,20 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAccount } from 'wagmi';
 import { v4 as uuidv4 } from 'uuid';
 import { useRouter } from 'next/navigation';
+import { TokenSearch } from '@/components/token-search';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 
 interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  tradeSignal?: any;
 }
 
 interface ChatThread {
@@ -19,45 +24,51 @@ interface ChatThread {
   messages: ChatMessage[];
 }
 
-interface TradeSignal {
-  type: 'BUY' | 'SELL' | 'BUY_LIMIT' | 'SELL_LIMIT' | 'BUY_STOP' | 'SELL_STOP';
-  token: string;
-  amount: string;
-  lotSize: number;
-  price?: string;
-  takeProfitPrice?: string;
-  stopLossPrice?: string;
-  pair: string;
+interface SavedThread extends Omit<ChatThread, 'messages'> {
+  messages: Array<Omit<ChatMessage, 'timestamp'> & { timestamp: string }>;
+}
+
+interface AIResponse {
+  response: {
+    kwargs: {
+      content: string;
+    };
+    tradeSignal?: any;
+  };
+  threadId: string;
 }
 
 export default function ChatPage() {
   const { address, isConnected } = useAccount();
   const router = useRouter();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [activeThread, setActiveThread] = useState<string | null>(null);
   const [input, setInput] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [tradeSignal, setTradeSignal] = useState<TradeSignal | null>(null);
+  const [tradeSignal, setTradeSignal] = useState<any | null>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [selectedToken, setSelectedToken] = useState<string>('bitcoin');
   
   // Load chat threads from localStorage on component mount
-  address?.toString()
-  isConnected.valueOf.toString()
   useEffect(() => {
     const savedThreads = localStorage.getItem('chatThreads');
     if (savedThreads) {
       try {
-        const parsedThreads = JSON.parse(savedThreads);
+        const parsedThreads = JSON.parse(savedThreads) as SavedThread[];
         // Convert string dates back to Date objects
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        parsedThreads.forEach((thread: any) => {
-            thread.lastMessage = new Date(thread.lastMessage);
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          thread.messages.forEach((msg: any) => {
-            msg.timestamp = new Date(msg.timestamp);
-          });
+        const convertedThreads = parsedThreads.map(thread => {
+          return {
+            ...thread,
+            lastMessage: new Date(thread.lastMessage),
+            messages: thread.messages.map(msg => ({
+              ...msg,
+              timestamp: new Date(msg.timestamp)
+            }))
+          };
         });
-        setThreads(parsedThreads);
+        setThreads(convertedThreads as unknown as ChatThread[]);
       } catch (error) {
         console.error('Error parsing saved threads:', error);
       }
@@ -70,6 +81,15 @@ export default function ChatPage() {
       localStorage.setItem('chatThreads', JSON.stringify(threads));
     }
   }, [threads]);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [threads, activeThread]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
   
   const createNewThread = () => {
     const newThreadId = uuidv4();
@@ -81,7 +101,7 @@ export default function ChatPage() {
         {
           id: uuidv4(),
           role: 'assistant',
-          content: "Hello! I'm your crypto assistant. I can help you with market information, news, price predictions, and even execute trades for you. How can I help you today?",
+          content: "Hello! I'm BASE TRADER, your crypto assistant. I can help you with market information, price predictions, and trading signals. How can I help you today?",
           timestamp: new Date(),
         }
       ]
@@ -89,150 +109,186 @@ export default function ChatPage() {
     
     setThreads(prev => [newThread, ...prev]);
     setActiveThread(newThreadId);
+    // Save to localStorage
+    const updatedThreads = [newThread, ...threads];
+    localStorage.setItem('chatThreads', JSON.stringify(updatedThreads));
   };
   
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!input.trim() || !activeThread) return;
     
-    const userMessage: ChatMessage = {
+    setIsLoading(true);
+    setTradeSignal(null); // Clear previous trade signal
+    
+    // Check if the message includes a token selection
+    const tokenPattern = /token:([a-z0-9-]+)/i;
+    const tokenMatch = input.match(tokenPattern);
+    const messageTokenId = tokenMatch ? tokenMatch[1].toLowerCase() : selectedToken;
+    
+    // First update UI with user message
+    const userMessage = {
       id: uuidv4(),
-      role: 'user',
+      role: 'user' as const,
       content: input,
       timestamp: new Date(),
     };
-    
-    // Update the thread with the user message
-    setThreads(prev => 
-      prev.map(thread => 
-        thread.id === activeThread 
-          ? {
-              ...thread,
-              messages: [...thread.messages, userMessage],
-              lastMessage: new Date()
-            }
-          : thread
-      )
-    );
-    
-    setInput('');
-    setIsLoading(true);
+
+    const updatedThreads = threads.map(thread => {
+      if (thread.id === activeThread) {
+        return {
+          ...thread,
+          messages: [...thread.messages, userMessage],
+          lastMessage: new Date(),
+        };
+      }
+      return thread;
+    });
+
+    setThreads(updatedThreads);
+    localStorage.setItem('chatThreads', JSON.stringify(updatedThreads));
     
     try {
-      // Send the message to the AI assistant
+      // Get the active thread data to fetch the threadId if it exists
+      const activeThreadData = threads.find(thread => thread.id === activeThread);
+      const threadId = activeThreadData?.id || null;
+      
+      // Call the API with the token ID
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           message: input,
-          threadId: activeThread
+          threadId: threadId,
+          tokenId: messageTokenId // Use extracted token or default
         }),
       });
       
       if (!response.ok) {
-        throw new Error('Failed to send message to AI assistant');
+        throw new Error('Failed to send message');
       }
       
-      const data = await response.json();
+      const data: AIResponse = await response.json();
       
-      // Check if the response contains a trade signal
-      const signalMatch = data.response.match(/TRADE_SIGNAL_START([\s\S]*?)TRADE_SIGNAL_END/);
-      
-      if (signalMatch && signalMatch[1]) {
-        try {
-          const signalData = JSON.parse(signalMatch[1]);
-          setTradeSignal(signalData);
+      // Update UI with assistant's response
+      const assistantMessage = {
+        id: uuidv4(),
+        role: 'assistant' as const,
+        content: data.response.kwargs.content,
+        timestamp: new Date(),
+        tradeSignal: data.response.tradeSignal || null,
+      };
+
+      const finalThreads = updatedThreads.map(thread => {
+        if (thread.id === activeThread) {
+          // Update the thread title if it's a new thread
+          const updatedThread = {
+            ...thread,
+            messages: [...thread.messages, assistantMessage],
+            lastMessage: new Date(),
+          };
           
-          // Remove the signal data from the response
-          data.response = data.response.replace(/TRADE_SIGNAL_START[\s\S]*?TRADE_SIGNAL_END/, '');
-        } catch (error) {
-          console.error('Error parsing trade signal:', error);
+          // Set thread title based on first message if it's "New Conversation"
+          if (updatedThread.title === 'New Conversation' && updatedThread.messages.length >= 2) {
+            const firstUserMessage = updatedThread.messages.find(m => m.role === 'user');
+            if (firstUserMessage) {
+              // Create a title from the first message (max 40 chars)
+              const title = firstUserMessage.content.slice(0, 40) + (firstUserMessage.content.length > 40 ? '...' : '');
+              updatedThread.title = title;
+            }
+          }
+          
+          return updatedThread;
         }
+        return thread;
+      });
+
+      setThreads(finalThreads);
+      localStorage.setItem('chatThreads', JSON.stringify(finalThreads));
+      
+      // Extract trade signal (if present)
+      if (data.response.tradeSignal) {
+        setTradeSignal(data.response.tradeSignal);
       }
       
-      // Update thread title if it's a new thread with only the welcome message
-      const currentThread = threads.find(t => t.id === activeThread);
-      let updatedTitle = currentThread?.title || 'New Conversation';
-      
-      if (currentThread?.messages.length === 1 && currentThread.title === 'New Conversation') {
-        // Generate a title from the first user message
-        updatedTitle = input.length > 30 ? `${input.substring(0, 30)}...` : input;
+      // Set the selected token if it was changed in this message
+      if (tokenMatch) {
+        setSelectedToken(messageTokenId);
       }
-      
-      const assistantMessage: ChatMessage = {
-        id: uuidv4(),
-        role: 'assistant',
-        content: data.response,
-        timestamp: new Date(),
-      };
-      
-      // Update the thread with the assistant message
-      setThreads(prev => 
-        prev.map(thread => 
-          thread.id === activeThread 
-            ? {
-                ...thread,
-                title: updatedTitle,
-                messages: [...thread.messages, assistantMessage],
-                lastMessage: new Date()
-              }
-            : thread
-        )
-      );
     } catch (error) {
-      console.error('Error processing message:', error);
+      console.error('Error sending message:', error);
       
-      // Add an error message
-      const errorMessage: ChatMessage = {
+      // Add error message to thread
+      const errorMessage = {
         id: uuidv4(),
-        role: 'assistant',
-        content: 'Sorry, I encountered an error processing your request. Please try again.',
+        role: 'assistant' as const,
+        content: "Sorry, I encountered an error processing your request. Please try again.",
         timestamp: new Date(),
       };
       
-      setThreads(prev => 
-        prev.map(thread => 
-          thread.id === activeThread 
-            ? {
-                ...thread,
-                messages: [...thread.messages, errorMessage],
-                lastMessage: new Date()
-              }
-            : thread
-        )
-      );
+      const errorThreads = updatedThreads.map(thread => {
+        if (thread.id === activeThread) {
+          return {
+            ...thread,
+            messages: [...thread.messages, errorMessage],
+            lastMessage: new Date(),
+          };
+        }
+        return thread;
+      });
+      
+      setThreads(errorThreads);
+      localStorage.setItem('chatThreads', JSON.stringify(errorThreads));
     } finally {
       setIsLoading(false);
+      setInput('');
     }
   };
-  
-  const handleDeleteThread = (threadId: string) => {
+
+  const handleDeleteThread = async (threadId: string) => {
+    try {
+      // Call the API to delete the thread
+      await fetch('/api/chat', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          threadId,
+        }),
+      });
+    } catch (error) {
+      console.error('Error deleting thread from API:', error);
+    }
+
+    // Always update local state regardless of API result
     setThreads(prev => prev.filter(thread => thread.id !== threadId));
     if (activeThread === threadId) {
       setActiveThread(null);
+      setTradeSignal(null); // Clear trade signal when thread is deleted
     }
+    const updatedThreads = threads.filter(thread => thread.id !== threadId);
+    localStorage.setItem('chatThreads', JSON.stringify(updatedThreads));
   };
-  
+
+  // Find active thread data directly from threads state
+  const activeThreadData = threads.find(thread => thread.id === activeThread);
+
   const executeTradeSignal = () => {
     if (!tradeSignal) return;
     
-    // Store the signal in localStorage to be used in the trade page
-    localStorage.setItem('pendingTradeSignal', JSON.stringify(tradeSignal));
+    // For now, just alert with the trade details
+    alert(`Executing ${tradeSignal.type} order for ${tradeSignal.amount} ${tradeSignal.token} at ${tradeSignal.price || 'market price'}`);
     
-    // Navigate to the trade page
-    router.push('/trade');
+    // In a real application, this would route to a trade execution page
+    // router.push('/trade');
   };
-  
+
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleString();
   };
-  
-  const activeThreadData = activeThread 
-    ? threads.find(thread => thread.id === activeThread) 
-    : null;
   
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
@@ -342,6 +398,8 @@ export default function ChatPage() {
                       </div>
                     </div>
                   )}
+                  
+                  <div ref={messagesEndRef} />
                 </div>
                 
                 {/* Trade Signal Card */}
@@ -354,7 +412,7 @@ export default function ChatPage() {
                         <span className={`font-bold ml-1 ${
                           tradeSignal.type.includes('BUY') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                         }`}>
-                          {tradeSignal.type.replace('_', ' ')}
+                          {tradeSignal.type}
                         </span>
                       </div>
                       <div>
@@ -401,30 +459,79 @@ export default function ChatPage() {
                   </div>
                 )}
                 
-                {/* Input Area */}
+                {/* Input Form - Always show when there's an active thread */}
                 <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200 dark:border-gray-700">
-                  <div className="flex space-x-2">
-                    <input
-                      type="text"
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      placeholder="Ask about crypto markets, news, or predictions..."
-                      className="flex-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      disabled={isLoading}
-                    />
+                  <div className="flex flex-col space-y-2 relative">
                     <button
-                      type="submit"
-                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 disabled:opacity-50"
-                      disabled={isLoading || !input.trim()}
+                      type="button"
+                      onClick={() => setIsSearchOpen(!isSearchOpen)}
+                      className="absolute right-14 top-2 z-10 p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="22" y1="2" x2="11" y2="13"></line>
-                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                      </svg>
+                      {isSearchOpen ? (
+                        <ChevronUp className="h-5 w-5" />
+                      ) : (
+                        <ChevronDown className="h-5 w-5" />
+                      )}
                     </button>
-                  </div>
-                  <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                    {`Try: "Give me a signal for ETH" or "Buy 0.1 BTC with TP at 70000 and SL at 60000"`}
+                    
+                    {isSearchOpen && (
+                      <div className="absolute bottom-full w-full mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                        <TokenSearch
+                          onSelect={(token) => {
+                            setInput(prev => `${prev} token:${token.id} `);
+                            setSelectedToken(token.id);
+                            setIsSearchOpen(false);
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex space-x-2">
+                      <input
+                        type="text"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        placeholder="Ask about crypto markets, token information, or trade signals..."
+                        className="flex-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        disabled={isLoading}
+                      />
+                      <button
+                        type="submit"
+                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 disabled:opacity-50"
+                        disabled={isLoading || !input.trim()}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="22" y1="2" x2="11" y2="13"></line>
+                          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2 flex-wrap">
+                      <span>Pro tip:</span>
+                      <button
+                        type="button"
+                        className="text-blue-500 hover:underline"
+                        onClick={() => setInput("Give me a trading signal for BTC")}
+                      >
+                        Get BTC signal
+                      </button>
+                      <span>•</span>
+                      <button
+                        type="button"
+                        className="text-blue-500 hover:underline"
+                        onClick={() => setInput("token:ethereum Tell me about ETH price potential")}
+                      >
+                        ETH analysis
+                      </button>
+                      <span>•</span>
+                      <button
+                        type="button"
+                        className="text-blue-500 hover:underline"
+                        onClick={() => setInput("What's your price prediction for SOL?")}
+                      >
+                        SOL prediction
+                      </button>
+                    </div>
                   </div>
                 </form>
               </>

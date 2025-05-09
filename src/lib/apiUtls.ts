@@ -1,6 +1,5 @@
 import { ChartData, CryptoData, NewsItem, PredictionResult, TradeRequest, TradeResponse } from "./types/crypto";
 
-
 // Fetch current prices for top cryptocurrencies
 export const fetchCryptoPrices = async (): Promise<CryptoData[]> => {
   try {
@@ -33,16 +32,17 @@ export const fetchCryptoHistory = async (
 
 export const fetchCryptoNews = async (): Promise<NewsItem[]> => {
   try {
-    const response = await fetch('/api/crypto/news');
+    const response = await fetch("/api/crypto/prices/news")
     if (!response.ok) {
-      throw new Error('Failed to fetch crypto news');
+      throw new Error("Failed to fetch crypto news")
     }
-    return await response.json();
+    return await response.json()
   } catch (error) {
-    console.error('Error fetching crypto news:', error);
-    return [];
+    console.error("Error fetching crypto news:", error)
+    return []
   }
-};
+}
+
 // Execute a trade
 export const executeTrade = async (tradeRequest: TradeRequest): Promise<TradeResponse> => {
   try {

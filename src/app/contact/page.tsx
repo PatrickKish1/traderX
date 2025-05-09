@@ -1,5 +1,8 @@
 'use client';
 import { useState } from 'react';
+import Footer from "@/components/footer"
+
+
 export default function ContactPage() {
   const [formData, setFormData] = useState({
     name: '',
@@ -61,7 +64,7 @@ export default function ContactPage() {
                   </div>
                   <div className="ml-4">
                     <h3 className="text-lg font-medium">Phone</h3>
-                    <p className="text-gray-600 dark:text-gray-400">+1 (555) 123-4567</p>
+                    <p className="text-gray-600 dark:text-gray-400">+233 (054) 849-6120</p>
                   </div>
                 </div>
                 
@@ -74,7 +77,7 @@ export default function ContactPage() {
                   </div>
                   <div className="ml-4">
                     <h3 className="text-lg font-medium">Email</h3>
-                    <p className="text-gray-600 dark:text-gray-400">support@cryptotraderpro.com</p>
+                    <p className="text-gray-600 dark:text-gray-400">patrickkesh90@gmail.com</p>
                   </div>
                 </div>
                 
@@ -90,7 +93,7 @@ export default function ContactPage() {
                     <p className="text-gray-600 dark:text-gray-400">
                       123 Blockchain Avenue<br />
                       Suite 456<br />
-                      San Francisco, CA 94105
+                      East Legon, Accra
                     </p>
                   </div>
                 </div>
@@ -214,6 +217,7 @@ export default function ContactPage() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { Suspense } from 'react';
 import CryptoGame from '@/components/crypto-game';
 import LoadingSpinner from '@/components/loader-spinner';
+import Link from 'next/link';
 
 export default function GamePage() {
   return (
@@ -11,10 +12,17 @@ export default function GamePage() {
         <h1 className="text-3xl font-bold mb-6">Crypto Catcher Game</h1>
         
         <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 shadow-md">
-          <p className="mb-6 text-gray-600 dark:text-gray-400">
-            Welcome to Crypto Catcher! Control your wallet to collect Bitcoin tokens while avoiding obstacles. 
-            The more coins you collect, the higher your score. Watch out for special golden coins worth extra points!
-          </p>
+          <div className="flex justify-between items-center mb-6">
+            <p className="text-gray-600 dark:text-gray-400">
+              Welcome to Crypto Catcher! Control your wallet to collect Bitcoin tokens while avoiding obstacles.
+            </p>
+            <Link
+              href="/claims"
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              Claim Rewards
+            </Link>
+          </div>
           
           <Suspense fallback={<LoadingSpinner />}>
             <CryptoGame />
@@ -25,14 +33,10 @@ export default function GamePage() {
             <ul className="list-disc pl-5 space-y-2 text-gray-600 dark:text-gray-400">
               <li>Use the <strong>arrow keys</strong> or <strong>A/D keys</strong> to move your wallet left and right</li>
               <li>On mobile devices, use the on-screen controls or tap and drag to move</li>
-              <li>Collect Bitcoin tokens to increase your score</li>
-              <li>Golden coins are worth 5x more points</li>
-              <li>Avoid red obstacles - hitting one ends the game</li>
-              <li>The game gets faster as your level increases</li>
+              <li>Collect valuable crypto tokens to increase your score</li>
+              <li>Avoid red tokens as they will end your game</li>
+              <li>Try to beat your high score!</li>
             </ul>
-          </div>
-          
-          <div className="mt-8">
             <h2 className="text-xl font-bold mb-4">Leaderboard</h2>
             <div className="overflow-x-auto">
               <table className="min-w-full bg-white dark:bg-gray-700 rounded-lg overflow-hidden">

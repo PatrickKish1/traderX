@@ -1,34 +1,38 @@
-'use client';
+"use client"
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useAccount } from 'wagmi';
-import { useTheme } from '@/lib/context/theme-context';
-import WalletConnection from './wallet-connection';
+import { useState } from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { useAccount } from "wagmi"
+import { useTheme } from "@/lib/context/theme-context"
+import WalletConnection from "./wallet-connection"
+import { Moon, Sun, Menu, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 const Header = () => {
-  const { theme, toggleTheme } = useTheme();
-  const pathname = usePathname();
-  const { isConnected } = useAccount();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme()
+  const pathname = usePathname()
+  const { isConnected } = useAccount()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const navItems = [
-    { name: 'Home', path: '/' },
-    { name: 'About', path: '/about' },
-    { name: 'Contact', path: '/contact' },
-    { name: 'News', path: '/news' },
-    { name: 'Game', path: '/game' },
-    { name: 'AI Chat', path: '/chat' },
-  ];
+    { name: "Home", path: "/" },
+    { name: "About", path: "/about" },
+    { name: "Contact", path: "/contact" },
+    { name: "News", path: "/news" },
+    { name: "Game", path: "/game" },
+    { name: "AI Chat", path: "/chat" },
+    // { name: "Trade", path: "/trade" },
+    { name: "Portfolio", path: "/portfolio" },
+  ]
 
   return (
-    <header className="sticky top-0 z-50 bg-white dark:bg-gray-900 shadow-md">
+    <header className="sticky top-0 z-50 border-b bg-white dark:bg-[#1a1a3a] border-border/40 backdrop-blur supports-[backdrop-filter]:bg-white dark:supports-[backdrop-filter]:bg-[#1a1a3a]/90">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <Link href="/" className="flex items-center">
-              <span className="text-xl font-bold text-blue-600 dark:text-blue-400">CryptoTrader Pro</span>
+            <Link href="/" className="flex items-center" prefetch>
+              <span className="text-2xl font-bold text-blue-700 hover:text-blue-800">CryptoTrader Pro</span>
             </Link>
           </div>
 
@@ -38,10 +42,8 @@ const Header = () => {
               <Link
                 key={item.path}
                 href={item.path}
-                className={`text-sm font-medium transition-colors ${
-                  pathname === item.path
-                    ? 'text-blue-600 dark:text-blue-400'
-                    : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+                className={`text-sm font-bold transition-colors ${
+                  pathname === item.path ? "text-primary text-white" : "text-purple-600 hover:text-foreground"
                 }`}
               >
                 {item.name}
@@ -50,10 +52,8 @@ const Header = () => {
             {isConnected && (
               <Link
                 href="/trade"
-                className={`text-sm font-medium transition-colors ${
-                  pathname === '/trade'
-                    ? 'text-blue-600 dark:text-blue-400'
-                    : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+                className={`text-sm font-bold transition-colors ${
+                  pathname === "/trade" ? "text-primary text-white" : "text-purple-600 hover:text-foreground"
                 }`}
               >
                 Trade
@@ -63,59 +63,34 @@ const Header = () => {
 
           <div className="flex items-center space-x-4">
             {/* Theme Toggle */}
-            <button
+            <Button
               onClick={toggleTheme}
-              className="p-2 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+              variant="ghost"
+              size="icon"
+              className="rounded-full text-foreground/60 hover:text-foreground hover:bg-accent"
               aria-label="Toggle theme"
             >
-              {theme === 'dark' ? (
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="5"></circle>
-                  <line x1="12" y1="1" x2="12" y2="3"></line>
-                  <line x1="12" y1="21" x2="12" y2="23"></line>
-                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                  <line x1="1" y1="12" x2="3" y2="12"></line>
-                  <line x1="21" y1="12" x2="23" y2="12"></line>
-                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-                </svg>
-              )}
-            </button>
+              {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+            </Button>
 
             {/* Wallet Connection */}
             <WalletConnection />
 
             {/* Mobile Menu Button */}
-            <button
+            <Button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+              variant="ghost"
+              size="icon"
+              className="md:hidden rounded-full text-foreground/60 hover:text-foreground hover:bg-accent"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                {mobileMenuOpen ? (
-                  <>
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </>
-                ) : (
-                  <>
-                    <line x1="3" y1="12" x2="21" y2="12"></line>
-                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                    <line x1="3" y1="18" x2="21" y2="18"></line>
-                  </>
-                )}
-              </svg>
-            </button>
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </Button>
           </div>
         </div>
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="md:hidden py-4 border-t border-border/40">
             <nav className="flex flex-col space-y-4">
               {navItems.map((item) => (
                 <Link
@@ -123,8 +98,8 @@ const Header = () => {
                   href={item.path}
                   className={`px-3 py-2 rounded-md text-sm font-medium ${
                     pathname === item.path
-                      ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                      ? "bg-accent text-primary"
+                      : "text-foreground/60 hover:text-foreground hover:bg-accent/50"
                   }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
@@ -135,9 +110,9 @@ const Header = () => {
                 <Link
                   href="/trade"
                   className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    pathname === '/trade'
-                      ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    pathname === "/trade"
+                      ? "bg-accent text-primary"
+                      : "text-foreground/60 hover:text-foreground hover:bg-accent/50"
                   }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
@@ -149,7 +124,7 @@ const Header = () => {
         )}
       </div>
     </header>
-  );
-};
+  )
+}
 
-export default Header;
+export default Header

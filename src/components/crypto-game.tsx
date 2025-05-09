@@ -1,510 +1,346 @@
-'use client';
-import { GameState } from '@/lib/types/crypto';
-import { useState, useEffect, useRef } from 'react';
-const CryptoGame: React.FC = () => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [gameState, setGameState] = useState<GameState>({
-    score: 0,
-    level: 1,
-    coins: 0,
-    gameOver: false,
-    highScore: 0
-  });
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [isMobile, setIsMobile] = useState<boolean>(false);
-  
-  // Game variables
-  const gameLoopRef = useRef<number | null>(null);
-  const playerRef = useRef({
-    x: 0,
-    y: 0,
-    width: 40,
-    height: 40,
-    speed: 5
-  });
-  const coinsRef = useRef<Array<{x: number, y: number, value: number}>>([]);
-  const obstaclesRef = useRef<Array<{x: number, y: number, width: number, height: number}>>([]);
-  const keysRef = useRef<{[key: string]: boolean}>({});
-  const touchPositionRef = useRef<{x: number, y: number} | null>(null);
-  const lastCoinTimeRef = useRef<number>(0);
-  const lastObstacleTimeRef = useRef<number>(0);
-  const gameTimeRef = useRef<number>(0);
-  const bitcoinImageRef = useRef<HTMLImageElement | null>(null);
-  const playerImageRef = useRef<HTMLImageElement | null>(null);
-  const obstacleImageRef = useRef<HTMLImageElement | null>(null);
-  
-  // Check if device is mobile
+"use client"
+
+import { useEffect, useRef, useState } from "react"
+import { useTheme } from "next-themes"
+import { tokens, difficultyLevels, type Token } from "@/config/tokens"
+import { saveTokenScore, getTokenScores } from "@/lib/cookies"
+
+const CryptoGame = () => {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const tokenImagesRef = useRef<Map<string, HTMLImageElement>>(new Map())
+  const [score, setScore] = useState(0)
+  const [gameStarted, setGameStarted] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
+  const [selectedToken, setSelectedToken] = useState<Token>(tokens[0])
+  const [difficulty, setDifficulty] = useState(difficultyLevels[0])
+  const [gameOver, setGameOver] = useState(false)
+  const [highScore, setHighScore] = useState(0)
+  const [imagesLoaded, setImagesLoaded] = useState(false)
+  const { theme } = useTheme()
+  const [tokenScores, setTokenScores] = useState(getTokenScores())
+
+  // Load images when component mounts or theme changes
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => {
-      window.removeEventListener('resize', checkMobile);
-    };
-  }, []);
-  
-  // Initialize game assets
-  useEffect(() => {
-    // Load bitcoin image
-    const bitcoinImg = new Image();
-    bitcoinImg.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmFiMDAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMTEuNzY3IDEyLjQ1MmMtMS4wNTktLjcwNi0xLjc2Ny0xLjkwNy0xLjc2Ny0zLjI3MiAwLTIuMTY5IDEuNzg2LTMuOTMgMy45ODUtMy45MyAxLjM2NSAwIDIuNTY2LjcwOCAzLjI3MiAxLjc2NyIvPjxwYXRoIGQ9Ik0xMS43NjcgMTEuNTQ4YzEuMDU5LjcwNiAxLjc2NyAxLjkwNyAxLjc2NyAzLjI3MiAwIDIuMTY5LTEuNzg2IDMuOTMtMy45ODUgMy45My0xLjM2NSAwLTIuNTY2LS43MDgtMy4yNzItMS43NjciLz48cGF0aCBkPSJNMTMuOTg1IDEyaDEuOTkzYy41NTIgMCAxIC40NDggMSAxcy0uNDQ4IDEtMSAxaC0xLjk5MyIvPjxwYXRoIGQ9Ik0xMy45ODUgMTBoMS45OTNjLjU1MiAwIDEgLjQ0OCAxIDFzLS40NDggMS0xIDFoLTEuOTkzIi8+PHBhdGggZD0iTTkuOTkgMTRoLTEuOTkzYy0uNTUyIDAtMS0uNDQ4LTEtMXMuNDQ4LTEgMS0xaDEuOTkzIi8+PHBhdGggZD0iTTkuOTkgMTJoLTEuOTkzYy0uNTUyIDAtMS0uNDQ4LTEtMXMuNDQ4LTEgMS0xaDEuOTkzIi8+PC9zdmc+";
-    bitcoinImageRef.current = bitcoinImg;
-    
-    // Load player image (wallet icon)
-    const playerImg = new Image();
-    playerImg.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDc0RDkiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cmVjdCB4PSIyIiB5PSI0IiB3aWR0aD0iMjAiIGhlaWdodD0iMTYiIHJ4PSIyIi8+PHJlY3QgeD0iMTYiIHk9IjEwIiB3aWR0aD0iNCIgaGVpZ2h0PSI0Ii8+PHBhdGggZD0iTTIgMTJoMTQiLz48L3N2Zz4=";
-    playerImageRef.current = playerImg;
-    
-    // Load obstacle image (warning icon)
-    const obstacleImg = new Image();
-    obstacleImg.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNGRjQxMzYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMTAgMTRsMi41LTIuNSAyLjUgMi41Ii8+PHBhdGggZD0iTTE1IDEwbC0yLjUgMi41TDEwIDEwIi8+PHBhdGggZD0iTTEyIDJMMiA3bDEwIDUgMTAtNS0xMC01eiIvPjxwYXRoIGQ9Ik0yIDEybDEwIDUgMTAtNSIvPjxwYXRoIGQ9Ik0yIDE3bDEwIDUgMTAtNSIvPjwvc3ZnPg==";
-    obstacleImageRef.current = obstacleImg;
-  }, []);
-  
-  // Initialize game
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const context = canvas.getContext('2d');
-    if (!context) return;
-    
-    // Set canvas dimensions
-    const resizeCanvas = () => {
-      const parent = canvas.parentElement;
-      if (!parent) return;
-      
-      // Set canvas dimensions to match parent container
-      canvas.width = parent.clientWidth;
-      canvas.height = parent.clientHeight;
-      
-      // Reset player position when canvas is resized
-      if (!isPlaying) {
-        playerRef.current.x = canvas.width / 2 - playerRef.current.width / 2;
-        playerRef.current.y = canvas.height - playerRef.current.height - 20;
-      }
-    };
-    
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-    
-    // Initialize player position
-    playerRef.current.x = canvas.width / 2 - playerRef.current.width / 2;
-    playerRef.current.y = canvas.height - playerRef.current.height - 20;
-    
-    // Load high score from localStorage
-    const savedHighScore = localStorage.getItem('cryptoGameHighScore');
-    if (savedHighScore) {
-      setGameState(prev => ({...prev, highScore: parseInt(savedHighScore)}));
-    }
-    
-    // Set up keyboard event listeners
-    const handleKeyDown = (e: KeyboardEvent) => {
-      keysRef.current[e.key] = true;
-    };
-    
-    const handleKeyUp = (e: KeyboardEvent) => {
-      keysRef.current[e.key] = false;
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-      window.removeEventListener('resize', resizeCanvas);
-      if (gameLoopRef.current) {
-        cancelAnimationFrame(gameLoopRef.current);
-      }
-    };
-  }, [isPlaying]);
-  
-  // Game loop
-  const startGame = () => {
-    if (gameLoopRef.current) {
-      cancelAnimationFrame(gameLoopRef.current);
-    }
-    
-    // Reset game state
-    setGameState({
-      score: 0,
-      level: 1,
-      coins: 0,
-      gameOver: false,
-      highScore: gameState.highScore
-    });
-    
-    coinsRef.current = [];
-    obstaclesRef.current = [];
-    lastCoinTimeRef.current = 0;
-    lastObstacleTimeRef.current = 0;
-    gameTimeRef.current = 0;
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    playerRef.current.x = canvas.width / 2 - playerRef.current.width / 2;
-    playerRef.current.y = canvas.height - playerRef.current.height - 20;
-    
-    setIsPlaying(true);
-    gameLoop(0);
-  };
-  
-  const gameLoop = (timestamp: number) => {
-    if (!isPlaying) return;
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const context = canvas.getContext('2d');
-    if (!context) return;
-    
-    // Calculate delta time
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const deltaTime = timestamp - gameTimeRef.current;
-    gameTimeRef.current = timestamp;
-    
-    // Clear canvas
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Update player position based on keyboard input
-    if (keysRef.current['ArrowLeft'] || keysRef.current['a']) {
-      playerRef.current.x -= playerRef.current.speed;
-    }
-    if (keysRef.current['ArrowRight'] || keysRef.current['d']) {
-      playerRef.current.x += playerRef.current.speed;
-    }
-    
-    // Update player position based on touch input
-    if (touchPositionRef.current !== null) {
-      const targetX = touchPositionRef.current.x - playerRef.current.width / 2;
-      const dx = targetX - playerRef.current.x;
-      
-      // Move player towards touch position with smooth movement
-      if (Math.abs(dx) > playerRef.current.speed) {
-        playerRef.current.x += Math.sign(dx) * playerRef.current.speed;
-      } else {
-        playerRef.current.x = targetX;
+    const loadImages = async () => {
+      const imagePromises = tokens.map((token) => {
+        return new Promise<[string, HTMLImageElement]>((resolve, reject) => {
+          const img = new Image()
+          img.onload = () => resolve([token.symbol, img])
+          img.onerror = reject
+          img.src = token.imageUrl.replace('/public', '') // Remove '/public' from path
+        })
+      })
+
+      try {
+        const loadedImages = await Promise.all(imagePromises)
+        loadedImages.forEach(([symbol, img]) => {
+          tokenImagesRef.current.set(symbol, img)
+        })
+        setImagesLoaded(true)
+      } catch (error) {
+        console.error('Error loading images:', error)
+        setImagesLoaded(true) // Set to true anyway to fallback to basic rendering
       }
     }
-    
-    // Keep player within canvas bounds
-    if (playerRef.current.x < 0) {
-      playerRef.current.x = 0;
+
+    loadImages()
+  }, [])
+
+  useEffect(() => {
+    if (!imagesLoaded) return
+
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+
+    const gameState = {
+      walletX: canvas.width / 2 - 40,
+      coins: [] as { x: number; y: number; token: Token; rotation: number }[],
+      animationFrameId: 0
     }
-    if (playerRef.current.x > canvas.width - playerRef.current.width) {
-      playerRef.current.x = canvas.width - playerRef.current.width;
+
+    const drawWallet = () => {
+      if (!ctx) return
+      const walletImg = new Image()
+      walletImg.src = '/images/wallet.svg'
+      ctx.drawImage(walletImg, gameState.walletX, canvas.height - 80, 80, 80)
     }
-    
-    // Spawn coins
-    if (timestamp - lastCoinTimeRef.current > 1000) {
-      lastCoinTimeRef.current = timestamp;
-      
-      const coinValue = Math.random() < 0.2 ? 5 : 1; // 20% chance for a 5-value coin
-      
-      coinsRef.current.push({
-        x: Math.random() * (canvas.width - 30),
-        y: -30,
-        value: coinValue
-      });
-    }
-    
-    // Spawn obstacles
-    if (timestamp - lastObstacleTimeRef.current > 2000) {
-      lastObstacleTimeRef.current = timestamp;
-      
-      const obstacleWidth = 30 + Math.random() * 50;
-      
-      obstaclesRef.current.push({
-        x: Math.random() * (canvas.width - obstacleWidth),
-        y: -50,
-        width: obstacleWidth,
-        height: 20
-      });
-    }
-    
-    // Update and draw coins
-    for (let i = coinsRef.current.length - 1; i >= 0; i--) {
-      const coin = coinsRef.current[i];
-      
-      // Move coin down
-      coin.y += 3 + gameState.level * 0.5;
-      
-      // Check if coin is collected
-      if (
-        playerRef.current.x < coin.x + 30 &&
-        playerRef.current.x + playerRef.current.width > coin.x &&
-        playerRef.current.y < coin.y + 30 &&
-        playerRef.current.y + playerRef.current.height > coin.y
-      ) {
-        // Collect coin
-        setGameState(prev => ({
-          ...prev,
-          score: prev.score + coin.value * 10,
-          coins: prev.coins + coin.value
-        }));
+
+    const drawCoin = (x: number, y: number, token: Token, rotation: number) => {
+      if (!ctx) return
+
+      ctx.save()
+      ctx.translate(x, y)
+      ctx.rotate(rotation)
+
+      // Increased size from 20 to 30
+      ctx.beginPath()
+      ctx.arc(0, 0, 30, 0, Math.PI * 2)
+      ctx.clip()
+
+      const tokenImage = tokenImagesRef.current.get(token.symbol)
+      if (tokenImage) {
+        // Increased size from 40 to 60
+        ctx.drawImage(tokenImage, -30, -30, 60, 60)
         
-        coinsRef.current.splice(i, 1);
-        continue;
-      }
-      
-      // Remove coin if it goes off screen
-      if (coin.y > canvas.height) {
-        coinsRef.current.splice(i, 1);
-        continue;
-      }
-      
-      // Draw coin
-      if (bitcoinImageRef.current) {
-        // Add a gold circle behind high-value coins
-        if (coin.value === 5) {
-          context.beginPath();
-          context.arc(coin.x + 15, coin.y + 15, 18, 0, Math.PI * 2);
-          context.fillStyle = 'rgba(255, 215, 0, 0.3)';
-          context.fill();
-          context.closePath();
+        if (token.isObstacle) {
+          ctx.fillStyle = 'rgba(239, 68, 68, 0.5)'
+          ctx.fillRect(-30, -30, 60, 60)
         }
-        
-        context.drawImage(
-          bitcoinImageRef.current,
-          coin.x,
-          coin.y,
-          30,
-          30
-        );
       } else {
-        // Fallback if image isn't loaded
-        context.beginPath();
-        context.arc(coin.x + 15, coin.y + 15, 15, 0, Math.PI * 2);
-        context.fillStyle = coin.value === 5 ? '#FFD700' : '#FFA500';
-        context.fill();
-        context.closePath();
+        ctx.fillStyle = token.isObstacle ? '#EF4444' : '#F7931A'
+        ctx.fill()
         
-        // Draw coin symbol
-        context.font = '16px Arial';
-        context.fillStyle = '#000';
-        context.textAlign = 'center';
-        context.textBaseline = 'middle';
-        context.fillText('₿', coin.x + 15, coin.y + 15);
+        ctx.fillStyle = '#FFFFFF'
+        ctx.font = 'bold 16px Arial' // Increased font size
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(token.symbol.substring(0, 2), 0, 0)
+      }
+
+      ctx.restore()
+    }
+
+    const spawnCoin = () => {
+      if (Math.random() < difficulty.spawnRate) {
+        const randomToken = Math.random() < 0.8
+          ? selectedToken
+          : tokens.filter((t) => t.isObstacle)[Math.floor(Math.random() * tokens.filter((t) => t.isObstacle).length)]
+
+        gameState.coins.push({
+          x: Math.random() * (canvas.width - 60) + 30,
+          y: -20,
+          token: randomToken,
+          rotation: 0,
+        })
       }
     }
-    
-    // Update and draw obstacles
-    for (let i = obstaclesRef.current.length - 1; i >= 0; i--) {
-      const obstacle = obstaclesRef.current[i];
+
+    const updateCoins = () => {
+      let scoreIncreased = false;
       
-      // Move obstacle down
-      obstacle.y += 4 + gameState.level * 0.5;
-      
-      // Check for collision with player
-      if (
-        playerRef.current.x < obstacle.x + obstacle.width &&
-        playerRef.current.x + playerRef.current.width > obstacle.x &&
-        playerRef.current.y < obstacle.y + obstacle.height &&
-        playerRef.current.y + playerRef.current.height > obstacle.y
-      ) {
-        // Game over
-        setIsPlaying(false);
-        setGameState(prev => {
-          const newHighScore = prev.score > prev.highScore ? prev.score : prev.highScore;
-          
-          // Save high score to localStorage
-          localStorage.setItem('cryptoGameHighScore', newHighScore.toString());
-          
-          return {
-            ...prev,
-            gameOver: true,
-            highScore: newHighScore
-          };
-        });
-        return;
+      for (let i = gameState.coins.length - 1; i >= 0; i--) {
+        const coin = gameState.coins[i]
+        coin.y += difficulty.speed
+        coin.rotation += 0.02
+
+        // Adjusted collision detection for larger tokens
+        if (
+          coin.x > gameState.walletX &&
+          coin.x < gameState.walletX + 80 &&
+          coin.y > canvas.height - 80 &&
+          coin.y < canvas.height - 20
+        ) {
+          if (coin.token.isObstacle) {
+            setGameOver(true)
+            if (score > highScore) {
+              setHighScore(score)
+            }
+            return
+          } else {
+            scoreIncreased = true;
+            const newScore = score + 1;
+            setScore(newScore)
+            // Save the token score when collected
+            saveTokenScore(coin.token.symbol, tokenScores[coin.token.symbol as keyof typeof tokenScores] + 1)
+            setTokenScores(getTokenScores()) // Update the local state
+            gameState.coins.splice(i, 1)
+          }
+        } else if (coin.y > canvas.height) {
+          gameState.coins.splice(i, 1)
+        }
       }
-      
-      // Remove obstacle if it goes off screen
-      if (obstacle.y > canvas.height) {
-        obstaclesRef.current.splice(i, 1);
-        continue;
-      }
-      
-      // Draw obstacle
-      // Draw red background
-      context.fillStyle = 'rgba(255, 65, 54, 0.3)';
-      context.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-      
-      if (obstacleImageRef.current) {
-        // Draw obstacle image in the center of the rectangle
-        const imgSize = Math.min(obstacle.width, obstacle.height);
-        const imgX = obstacle.x + (obstacle.width - imgSize) / 2;
-        const imgY = obstacle.y + (obstacle.height - imgSize) / 2;
-        
-        context.drawImage(
-          obstacleImageRef.current,
-          imgX,
-          imgY,
-          imgSize,
-          imgSize
-        );
-      } else {
-        // Fallback if image isn't loaded
-        context.fillStyle = '#FF4136';
-        context.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+
+      // Only spawn new coins if we didn't increase the score
+      if (!scoreIncreased) {
+        spawnCoin()
       }
     }
-    
-    // Draw player
-    if (playerImageRef.current) {
-      context.drawImage(
-        playerImageRef.current,
-        playerRef.current.x,
-        playerRef.current.y,
-        playerRef.current.width,
-        playerRef.current.height
-      );
-    } else {
-      // Fallback if image isn't loaded
-      context.fillStyle = '#0074D9';
-      context.fillRect(
-        playerRef.current.x,
-        playerRef.current.y,
-        playerRef.current.width,
-        playerRef.current.height
-      );
+
+    const gameLoop = () => {
+      if (!ctx || !canvas || gameOver || isPaused || !gameStarted) {
+        return
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+      drawWallet()
+      updateCoins() // Moved spawnCoin inside updateCoins
+      gameState.coins.forEach((coin) => drawCoin(coin.x, coin.y, coin.token, coin.rotation))
+
+      gameState.animationFrameId = requestAnimationFrame(gameLoop)
     }
-    
-    // Level up based on score
-    const newLevel = Math.floor(gameState.score / 500) + 1;
-    if (newLevel > gameState.level) {
-      setGameState(prev => ({...prev, level: newLevel}));
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!gameStarted || isPaused || gameOver) return
+
+      const moveSpeed = 20
+      if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") {
+        gameState.walletX = Math.max(0, gameState.walletX - moveSpeed)
+      }
+      if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") {
+        gameState.walletX = Math.min(canvas.width - 80, gameState.walletX + moveSpeed)
+      }
     }
-    
-    // Continue game loop
-    gameLoopRef.current = requestAnimationFrame(gameLoop);
-  };
-  
-  // Mobile controls
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isPlaying) return;
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const touch = e.touches[0];
-    const rect = canvas.getBoundingClientRect();
-    const touchX = touch.clientX - rect.left;
-    
-    // Update touch position
-    touchPositionRef.current = { x: touchX, y: 0 };
-    
-    // Prevent default to avoid scrolling
-    e.preventDefault();
-  };
-  
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (!isPlaying) return;
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const touch = e.touches[0];
-    const rect = canvas.getBoundingClientRect();
-    const touchX = touch.clientX - rect.left;
-    
-    // Set initial touch position
-    touchPositionRef.current = { x: touchX, y: 0 };
-    
-    // Prevent default to avoid scrolling
-    e.preventDefault();
-  };
-  
-  const handleTouchEnd = () => {
-    // Clear touch position
-    touchPositionRef.current = null;
-  };
-  
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!gameStarted || isPaused || gameOver || !canvas) return
+
+      const touch = e.touches[0]
+      const rect = canvas.getBoundingClientRect()
+      const x = touch.clientX - rect.left
+
+      // Center wallet on touch position
+      gameState.walletX = Math.max(0, Math.min(canvas.width - 80, x - 40))
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    canvas.addEventListener("touchmove", handleTouchMove)
+
+    if (gameStarted && !isPaused && !gameOver) {
+      gameLoop()
+    }
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+      canvas.removeEventListener("touchmove", handleTouchMove)
+      cancelAnimationFrame(gameState.animationFrameId)
+    }
+  }, [gameStarted, isPaused, difficulty.speed, difficulty.spawnRate, gameOver, imagesLoaded, selectedToken, score, highScore, tokenScores])
+
+  const resetGame = () => {
+    setGameOver(false)
+    setScore(0)
+    setGameStarted(true)
+    setTokenScores(getTokenScores()) // Reset token scores from cookies
+  }
+
+  const isDark = theme === "dark"
+
   return (
-    <div className="bg-gray-800 rounded-lg p-4">
-      <h2 className="text-xl font-bold mb-4">Crypto Catcher</h2>
-      
-      <div className="mb-4 flex justify-between items-center">
-        <div>
-          <p className="text-sm text-gray-400">Score: <span className="text-white">{gameState.score}</span></p>
-          <p className="text-sm text-gray-400">Level: <span className="text-white">{gameState.level}</span></p>
-          <p className="text-sm text-gray-400">Coins: <span className="text-white">{gameState.coins}</span></p>
-        </div>
-        <div>
-          <p className="text-sm text-gray-400">High Score: <span className="text-white">{gameState.highScore}</span></p>
-        </div>
+    <div className="flex flex-col items-center">
+      <div className="mb-4 flex gap-4">
+        <select
+          className="p-2 rounded border bg-background text-foreground"
+          value={selectedToken.symbol}
+          onChange={(e) => setSelectedToken(tokens.find((t) => t.symbol === e.target.value) || tokens[0])}
+          disabled={gameStarted && !gameOver}
+        >
+          {tokens
+            .filter((t) => !t.isObstacle)
+            .map((token) => (
+              <option key={token.symbol} value={token.symbol}>
+                {token.name}
+              </option>
+            ))}
+        </select>
+
+        <select
+          className="p-2 rounded border bg-background text-foreground"
+          value={difficulty.name}
+          onChange={(e) =>
+            setDifficulty(difficultyLevels.find((d) => d.name === e.target.value) || difficultyLevels[0])
+          }
+          disabled={gameStarted && !gameOver}
+        >
+          {difficultyLevels.map((level) => (
+            <option key={level.name} value={level.name}>
+              {level.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="mb-4 flex gap-6">
+        <div className="text-xl font-bold">Score: {score}</div>
+        <div className="text-xl font-bold">High Score: {highScore}</div>
       </div>
       
-      <div className="relative border border-gray-700 rounded-lg overflow-hidden" style={{ height: '300px' }}>
-        <canvas 
-          ref={canvasRef} 
-          className="w-full h-full bg-gray-900"
-          onTouchMove={handleTouchMove}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-        ></canvas>
-        
-        {!isPlaying && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-70">
-            {gameState.gameOver ? (
-              <>
-                <h3 className="text-2xl font-bold text-red-500 mb-2">Game Over!</h3>
-                <p className="text-white mb-4">Final Score: {gameState.score}</p>
-              </>
-            ) : (
-              <h3 className="text-2xl font-bold text-white mb-4">Crypto Catcher</h3>
-            )}
+      <div className="mb-4 flex gap-4 text-sm">
+        {Object.entries(tokenScores).map(([token, score]) => (
+          token !== 'total' && (
+            <div key={token} className="flex items-center gap-2">
+              <span>{token}:</span>
+              <span className="font-bold">{score}</span>
+            </div>
+          )
+        ))}
+      </div>
+
+      <div className="relative">
+        <canvas
+          ref={canvasRef}
+          width={800}
+          height={600}
+          className={`border border-gray-300 dark:border-gray-600 rounded-lg ${
+            isDark ? "bg-gradient-to-b from-gray-900 to-gray-800" : "bg-gradient-to-b from-blue-50 to-white"
+          }`}
+        />
+
+        {!imagesLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-lg">
+            <div className="flex flex-col items-center">
+              <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+              <div className="text-lg">Loading game assets...</div>
+            </div>
+          </div>
+        )}
+
+        {gameOver && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 rounded-lg">
+            <div className="text-3xl font-bold text-white mb-4">Game Over!</div>
+            <div className="text-xl text-white mb-6">Final Score: {score}</div>
             <button
-              onClick={startGame}
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+              className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-lg font-medium"
+              onClick={resetGame}
             >
-              {gameState.gameOver ? 'Play Again' : 'Start Game'}
+              Play Again
             </button>
-            
-            <div className="mt-4 text-sm text-gray-400">
-              {isMobile ? (
-                <p>Tap and drag to move your wallet</p>
-              ) : (
-                <p>Use arrow keys or A/D to move your wallet</p>
-              )}
-              <p className="mt-1">Collect Bitcoin, avoid red obstacles!</p>
-            </div>
           </div>
         )}
-        
-        {/* Mobile controls overlay */}
-        {isPlaying && isMobile && (
-          <div className="absolute bottom-4 left-0 right-0 flex justify-center">
-            <div className="flex space-x-8">
-              <button
-                className="w-16 h-16 rounded-full bg-gray-700 bg-opacity-50 flex items-center justify-center text-white text-2xl"
-                onTouchStart={() => keysRef.current['ArrowLeft'] = true}
-                onTouchEnd={() => keysRef.current['ArrowLeft'] = false}
-              >
-                ←
-              </button>
-              <button
-                className="w-16 h-16 rounded-full bg-gray-700 bg-opacity-50 flex items-center justify-center text-white text-2xl"
-                onTouchStart={() => keysRef.current['ArrowRight'] = true}
-                onTouchEnd={() => keysRef.current['ArrowRight'] = false}
-              >
-                →
-              </button>
+
+        {!gameStarted && !gameOver && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 rounded-lg">
+            <div className="text-2xl font-bold text-white mb-6">Crypto Catcher</div>
+            <div className="text-white mb-6 max-w-md text-center">
+              <p className="mb-2">Catch the falling crypto tokens with your wallet!</p>
+              <p className="mb-2">Use arrow keys or touch to move.</p>
+              <p className="text-red-400">{`Avoid red tokens or it's game over!`}</p>
             </div>
+            <button
+              className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-lg font-medium"
+              onClick={() => setGameStarted(true)}
+            >
+              Start Game
+            </button>
           </div>
         )}
       </div>
-      
-      <div className="mt-4 text-sm text-gray-400">
-        <p>Collect Bitcoin tokens to increase your score. Regular coins are worth 10 points, golden coins are worth 50 points!</p>
-        <p className="mt-1">{`Avoid the red obstacles or it's game over. The game gets faster as your level increases.`}.</p>
-      </div>
+
+      {gameStarted && !gameOver && (
+        <div className="flex gap-4 mt-4">
+          <button
+            className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
+            onClick={() => setIsPaused(!isPaused)}
+          >
+            {isPaused ? "Resume" : "Pause"}
+          </button>
+          <button
+            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            onClick={() => {
+              setGameStarted(false)
+              setScore(0)
+            }}
+          >
+            Stop Game
+          </button>
+        </div>
+      )}
+
+      <div className="mt-4 text-sm text-muted-foreground">Controls: Arrow keys or touch to move the wallet</div>
     </div>
-  );
-};
-export default CryptoGame;
+  )
+}
+
+export default CryptoGame

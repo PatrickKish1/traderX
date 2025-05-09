@@ -1,3 +1,6 @@
+import Link from "next/link";
+import Footer from "@/components/footer"
+
 export default function AboutPage() {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
@@ -61,7 +64,7 @@ export default function AboutPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="text-center">
                 <div className="w-32 h-32 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
-                <h3 className="text-xl font-bold">Jane Doe</h3>
+                <h3 className="text-xl font-bold">Patrick</h3>
                 <p className="text-gray-600 dark:text-gray-400">CEO & Co-Founder</p>
                 <p className="text-gray-700 dark:text-gray-300 mt-2">
                   Former fintech executive with 15+ years of experience in blockchain and financial markets.
@@ -69,7 +72,7 @@ export default function AboutPage() {
               </div>
               <div className="text-center">
                 <div className="w-32 h-32 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
-                <h3 className="text-xl font-bold">John Smith</h3>
+                <h3 className="text-xl font-bold">Riley</h3>
                 <p className="text-gray-600 dark:text-gray-400">CTO & Co-Founder</p>
                 <p className="text-gray-700 dark:text-gray-300 mt-2">
                   Blockchain developer and architect with experience building high-frequency trading systems.
@@ -77,7 +80,7 @@ export default function AboutPage() {
               </div>
               <div className="text-center">
                 <div className="w-32 h-32 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4"></div>
-                <h3 className="text-xl font-bold">Emily Chen</h3>
+                <h3 className="text-xl font-bold">Kwame</h3>
                 <p className="text-gray-600 dark:text-gray-400">Head of AI Research</p>
                 <p className="text-gray-700 dark:text-gray-300 mt-2">
                   PhD in Machine Learning with expertise in predictive analytics and natural language processing.
@@ -93,10 +96,13 @@ export default function AboutPage() {
               Whether you're a seasoned trader or just curious about crypto, CryptoTrader Pro has something for you.`}
             </p>
             <button className="px-6 py-3 bg-white text-blue-600 font-bold rounded-lg hover:bg-blue-50 transition-colors">
-              Start Trading Now
+              <Link href='/trade'>
+                Start Trading Now
+              </Link>
             </button>
           </div>
         </div>
+        <Footer />
       </div>
     );
   }

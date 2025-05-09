@@ -33,6 +33,12 @@ export function getChainId(blockchain: string): string {
     'POLYGON': '137',
     'ARBITRUM': '42161',
     'WORLD': '1',
+    'ethereum': '1',
+    'polygon': '137',
+    'arbitrum': '42161',
+    'optimism': '10',
+    'avalanche': '43114',
+    'bsc': '56',
   };
   
   return chainMap[blockchain.toUpperCase()] || '1';
@@ -77,4 +83,78 @@ function getTokenDecimals(symbol: string): number {
   };
   
   return decimalMap[symbol.toUpperCase()] || 18;
+}
+
+
+
+
+
+
+
+
+
+
+// new///////////////////////////////////////////////////////////////////////////////////
+
+
+// export function calculateSellAmount(tradeRequest: any): string {
+//   const { type, token_amount, price } = tradeRequest;
+  
+//   if (type === 'SELL') {
+//     return token_amount;
+//   }
+  
+//   // For BUY orders, convert to sell amount of the pair token
+//   return String(parseFloat(token_amount) * (parseFloat(price) || 0));
+// }
+
+export function formatPrice(price: number): string {
+  if (price >= 1000) {
+    return price.toLocaleString('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+  
+  if (price >= 1) {
+    return price.toLocaleString('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4,
+    });
+  }
+  
+  return price.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 8,
+  });
+}
+
+export function formatNumber(num: number, precision: number = 2): string {
+  if (isNaN(num)) return '0';
+  
+  // For numbers greater than 1 million
+  if (Math.abs(num) >= 1_000_000) {
+    return (num / 1_000_000).toFixed(precision) + 'M';
+  }
+  
+  // For numbers greater than 1 thousand
+  if (Math.abs(num) >= 1_000) {
+    return (num / 1_000).toFixed(precision) + 'K';
+  }
+  
+  return num.toFixed(precision);
+}
+
+export function formatPercentage(percent: number): string {
+  const formatted = percent.toFixed(2);
+  if (percent > 0) {
+    return `+${formatted}%`;
+  }
+  return `${formatted}%`;
 }

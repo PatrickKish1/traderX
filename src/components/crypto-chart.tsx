@@ -102,7 +102,7 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ cryptoData }) => {
         },
         ticks: {
           color: 'rgba(255, 255, 255, 0.7)',
-          callback: function(value) {
+          callback: function(value: { toLocaleString: () => string; }) {
             return '$' + value.toLocaleString();
           },
         },
