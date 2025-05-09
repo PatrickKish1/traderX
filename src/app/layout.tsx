@@ -1,9 +1,9 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
+import '@coinbase/onchainkit/styles.css';
 import "./globals.css"
 import "@/lib/styles/onchainkit-styles.css"
-// import '@coinbase/onchainkit/styles.css';
 import { Providers } from "@/lib/providers"
 import Header from "@/components/header"
 import { ThemeProvider } from "@/lib/context/theme-context"
