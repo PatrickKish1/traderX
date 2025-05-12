@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { Wallet, ConnectWallet, WalletDropdown, WalletDropdownDisconnect } from "@coinbase/onchainkit/wallet"
-import { Avatar, Address, Identity } from "@coinbase/onchainkit/identity"
+import { Avatar, Address } from "@coinbase/onchainkit/identity"
 import { useAccount } from "wagmi"
 import { useTheme } from "@/lib/context/theme-context"
 import { Button } from "@/components/ui/button"
@@ -71,16 +71,16 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({ className, buttonLa
   return (
     <div className={className}>
       <Wallet>
-        <ConnectWallet>
+        <ConnectWallet className="flex items-center gap-2 bg-blue-800 dark:bg-blue-800 hover:bg-blue-900">
           {isConnected ? (
-            <Button variant="outline" className="flex items-center gap-2 dark:bg-blue-800">
+            <div className="flex items-center gap-2 text-white">
               <div className="h-6 w-6 overflow-hidden rounded-full">
-                <Identity address={address} schemaId={address} className="items-center">
-                  <Avatar address={address} className="h-full w-full ml-1" />
-                </Identity>
+                {/* <Identity address={address} schemaId={address} className="items-center"> */}
+                  <Avatar address={address} className="h-full w-full bg-white dark:bg-blue-800" />
+                {/* </Identity> */}
               </div>
               <span className="hidden sm:inline">{formatAddress(address)}</span>
-            </Button>
+            </div>
           ) : (
             <CustomConnectButton />
           )}

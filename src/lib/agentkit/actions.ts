@@ -1,72 +1,84 @@
-// import { getAgentInstance } from './config';
-// import { Address } from 'viem';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { getAgentInstance } from './config';
+import { Address } from 'viem';
+import { AgentKit } from '@coinbase/agentkit';
 
-// const agent = getAgentInstance();
+let agentInstance: AgentKit;
 
-// export const WalletActions = {
-//   async getBalances(walletAddress: Address) {
-//     const balances = await agent.wallet.getBalances({
-//       address: walletAddress,
-//       tokens: ['eth', 'usdc', 'dai', 'wbtc'],
-//     });
+const getAgent = async () => {
+  if (!agentInstance) {
+    agentInstance = await getAgentInstance();
+  }
+  return agentInstance;
+};
 
-//     return balances.map(balance => ({
-//       symbol: balance.token.symbol.toUpperCase(),
-//       amount: Number(balance.amount).toFixed(4),
-//       value: Number(balance.valueUSD).toFixed(2),
-//     }));
-//   },
+export const WalletActions = {
+  async getBalances(walletAddress: Address) {
+    const agent = await getAgent();
+    const actions = agent.getActions();
+    const balanceAction = actions.find(a => a.name === 'getBalances');
+    if (!balanceAction) throw new Error('Balance action not found');
 
-//   async createSmartWallet(ownerAddress: Address) {
-//     const wallet = await agent.wallet.createSmartWallet({
-//       ownerAddress,
-//       chain: agent.config.chain,
-//     });
+    const result = await balanceAction.invoke({
+      address: walletAddress,
+      tokens: ['eth', 'usdc', 'dai', 'wbtc'],
+    });
 
-//     return {
-//       address: wallet.address,
-//       isDeployed: wallet.isDeployed,
-//       deploymentTxHash: wallet.deploymentTxHash,
-//     };
-//   },
+    const balances = JSON.parse(result);
+    return balances.map((balance: { token: { symbol: string; }; amount: any; valueUSD: any; }) => ({
+      symbol: balance.token.symbol.toUpperCase(),
+      amount: Number(balance.amount).toFixed(4),
+      value: Number(balance.valueUSD).toFixed(2),
+    }));
+  },
 
-//   async fundWallet(walletAddress: Address, amount: string = '0.05') {
-//     if (agent.config.chain === 'base') {
-//       throw new Error('Cannot fund wallets on mainnet automatically');
-//     }
+  async createSmartWallet(ownerAddress: Address) {
+    const agent = await getAgent();
+    const actions = agent.getActions();
+    const createWalletAction = actions.find(a => a.name === 'createSmartWallet');
+    if (!createWalletAction) throw new Error('Create wallet action not found');
 
-//     const txHash = await agent.wallet.fundWallet({
-//       address: walletAddress,
-//       amount,
-//       chain: agent.config.chain,
-//     });
+    const result = await createWalletAction.invoke({
+      ownerAddress,
+    });
 
-//     return {
-//       txHash,
-//       amount,
-//     };
-//   },
+    return JSON.parse(result);
+  },
 
-//   async swapTokens(params: {
-//     fromToken: string;
-//     toToken: string;
-//     amount: string;
-//     walletAddress: Address;
-//     slippage?: string;
-//   }) {
-//     const result = await agent.actions.swapTokens({
-//       fromToken: params.fromToken,
-//       toToken: params.toToken,
-//       amount: params.amount,
-//       slippage: params.slippage || '0.5',
-//       walletAddress: params.walletAddress,
-//     });
+  async fundWallet(walletAddress: Address, amount: string = '0.05') {
+    const agent = await getAgent();
+    const actions = agent.getActions();
+    const fundWalletAction = actions.find(a => a.name === 'fundWallet');
+    if (!fundWalletAction) throw new Error('Fund wallet action not found');
 
-//     return {
-//       txHash: result.txHash,
-//       expectedAmount: result.expectedAmount,
-//       minAmount: result.minAmount,
-//       gasUsed: result.gasUsed,
-//     };
-//   },
-// };
+    const result = await fundWalletAction.invoke({
+      address: walletAddress,
+      amount,
+    });
+
+    return JSON.parse(result);
+  },
+
+  async swapTokens(params: {
+    fromToken: string;
+    toToken: string;
+    amount: string;
+    walletAddress: Address;
+    slippage?: string;
+  }) {
+    const agent = await getAgent();
+    const actions = agent.getActions();
+    const swapAction = actions.find(a => a.name === 'swapTokens');
+    if (!swapAction) throw new Error('Swap action not found');
+
+    const result = await swapAction.invoke({
+      fromToken: params.fromToken,
+      toToken: params.toToken,
+      amount: params.amount,
+      slippage: params.slippage || '0.5',
+      walletAddress: params.walletAddress,
+    });
+
+    return JSON.parse(result);
+  },
+};
