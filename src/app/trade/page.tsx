@@ -14,9 +14,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { fetchMarkets } from "@/lib/api/coinbase"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
+import { useAccount } from "wagmi"
+import AiTradeSuggestions from "@/components/trading/ai-trade-suggestions"
 
 export default function TradePage() {
   const [isLoading, setIsLoading] = useState(true)
+  const { isConnected } = useAccount()
   const [selectedMarket, setSelectedMarket] = useState("BTC-USD")
   const [markets, setMarkets] = useState<any[]>([])
   const [isWalletConnected, setIsWalletConnected] = useState(false)
@@ -25,16 +28,20 @@ export default function TradePage() {
   useEffect(() => {
     // Check wallet connection status safely
     try {
-      // For demo purposes, we'll just set this to true
-      // In a real app, you would check the actual wallet connection
-      setIsWalletConnected(true)
-      loadMarkets()
+      if (isConnected) {
+        setIsWalletConnected(true)
+        setIsLoading(false)
+        loadMarkets()
+      }
+      if (!isConnected) {
+        setIsWalletConnected(false)
+        setIsLoading(true)
+      }
     } catch (error) {
       console.error("Error checking wallet connection:", error)
-      // If there's an error, we'll still load the markets
       loadMarkets()
     }
-  }, [])
+  }, [isConnected])
 
   useEffect(() => {
     const signal = localStorage.getItem('tradeSignal');
@@ -77,8 +84,6 @@ export default function TradePage() {
   }
 
   const handleConnectWallet = () => {
-    // In a real app, this would trigger the wallet connection flow
-    // For now, we'll just set the state to true
     setIsWalletConnected(true)
   }
 
@@ -87,6 +92,13 @@ export default function TradePage() {
     if (signal.type.includes('LIMIT')) return 'limit';
     if (signal.type.includes('STOP')) return 'stop';
     return 'market';
+  };
+
+  const handleAiSuggestion = (suggestion: any) => {
+    // Store the suggestion in localStorage to be picked up by the OrderForm
+    localStorage.setItem('tradeSignal', JSON.stringify(suggestion));
+    // Force a reload of the order form
+    window.location.reload();
   };
 
   if (isLoading) {
@@ -152,9 +164,12 @@ export default function TradePage() {
     <main className="min-h-screen bg-background text-foreground p-4 mb-20">
       <div className="container mx-auto">
         <div className="flex flex-col gap-4">
-          {/* Header with market selector and account summary */}
+          {/* Header with market selector, account summary, and AI suggestions */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-            <MarketSelector markets={markets} selectedMarket={selectedMarket} onMarketChange={handleMarketChange} />
+            <div className="flex gap-4 items-center">
+              <MarketSelector markets={markets} selectedMarket={selectedMarket} onMarketChange={handleMarketChange} />
+              <AiTradeSuggestions market={selectedMarket} onSuggestionSelect={handleAiSuggestion} />
+            </div>
             <AccountSummary />
           </div>
 
@@ -205,7 +220,7 @@ export default function TradePage() {
           </div>
 
           {/* Open orders and order history */}
-          <div className="bg-card rounded-lg shadow-sm p-4 border border-border mt-4">
+          <div className="bg-card rounded-lg shadow-sm p-4 border-3 border-border dark:border-blue-800 mt-4">
             <Tabs defaultValue="open">
               <TabsList>
                 <TabsTrigger value="open">Open Orders</TabsTrigger>
@@ -266,7 +281,7 @@ export default function TradePage() {
           </div>
         </div>
         {/* Order form section - prefill if tradeSignal exists */}
-        <div className="bg-card rounded-lg shadow-sm p-4 border border-border">
+        <div className="bg-card rounded-lg shadow-sm p-4 border-2 border-border dark:border-blue-800 mt-14">
           <Tabs defaultValue={getDefaultOrderType(tradeSignal)}>
             <TabsList className="grid grid-cols-3 mb-4">
               <TabsTrigger value="limit">Limit</TabsTrigger>

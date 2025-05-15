@@ -39,7 +39,7 @@ export default function TradeHistory({ market }: TradeHistoryProps) {
     loadTradeHistory()
 
     // Set up interval to refresh trade history
-    const interval = setInterval(loadTradeHistory, 5000)
+    const interval = setInterval(loadTradeHistory, 50000)
 
     return () => clearInterval(interval)
   }, [loadTradeHistory])

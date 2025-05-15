@@ -39,7 +39,7 @@ export default function OrderBook({ market }: OrderBookProps) {
     loadOrderBook()
 
     // Set up interval to refresh order book
-    const interval = setInterval(loadOrderBook, 5000)
+    const interval = setInterval(loadOrderBook, 500000)
 
     return () => clearInterval(interval)
   }, [loadOrderBook])

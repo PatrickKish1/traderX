@@ -9,8 +9,11 @@ import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { fetchMarketPrice } from "@/lib/api/coinbase"
-import { executeOrder } from "@/lib/api/trading"
+// import { executeOrder } from "@/lib/api/trading"
 import { toast } from "sonner"
+import { useAccount, useSignMessage } from 'wagmi';
+import { useTradeStore } from '@/lib/stores/tradeStore';
+import TradeManager from './trade-manager';
 
 interface OrderFormProps {
   market: string
@@ -26,7 +29,19 @@ interface OrderFormProps {
   }
 }
 
+interface Trade {
+  id: string;
+  symbol: string;
+  type: 'buy' | 'sell';
+  price: number;
+  amount: number;
+  status: 'open' | 'closed';
+  stopLoss: number | undefined;
+  takeProfit: number | undefined;
+}
+
 export default function OrderForm({ market, orderType, prefilledValues }: OrderFormProps) {
+  const { address, isConnected } = useAccount();
   const [side, setSide] = useState<"buy" | "sell">("buy")
   const [price, setPrice] = useState<string>("")
   const [amount, setAmount] = useState<string>("")
@@ -37,6 +52,11 @@ export default function OrderForm({ market, orderType, prefilledValues }: OrderF
   const [isReduceOnly, setIsReduceOnly] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [marketPrice, setMarketPrice] = useState<number | null>(null)
+  const { signMessage } = useSignMessage();
+  const { addTrade, accountBalance } = useTradeStore();
+  const [trades, setTrades] = useState<Trade[]>([]);
+  const [takeProfitPrice, setTakeProfitPrice] = useState<string>("")
+  const [stopLossPrice, setStopLossPrice] = useState<string>("")
 
   // Parse market symbol
   const [baseCurrency, quoteCurrency] = market.split("-")
@@ -60,7 +80,7 @@ export default function OrderForm({ market, orderType, prefilledValues }: OrderF
     fetchPrice()
 
     // Set up interval to refresh price
-    const interval = setInterval(fetchPrice, 5000)
+    const interval = setInterval(fetchPrice, 500000)
 
     return () => clearInterval(interval)
   }, [market, orderType])
@@ -132,60 +152,110 @@ export default function OrderForm({ market, orderType, prefilledValues }: OrderF
     }
   }, [prefilledValues, orderType])
 
+  // Add price simulation interval
+  useEffect(() => {
+    const simulatePriceMovement = () => {
+      if (isLoading || !marketPrice) return;
+      
+      const variation = (Math.random() - 0.5) * 2;
+      const newPrice = marketPrice * (1 + variation * 0.001);
+      setMarketPrice(newPrice);
+      
+      // Update profits for open trades
+      trades.forEach(trade => {
+        if (trade.status === 'open') {
+          const priceDiff = newPrice - trade.price;
+          const profit = trade.type === 'buy' ? priceDiff * trade.amount : -priceDiff * trade.amount;
+          updateTradeProfit(trade.id, profit);
+        }
+      });
+    };
+    
+    const interval = setInterval(simulatePriceMovement, 1000);
+    return () => clearInterval(interval);
+  }, [isLoading, marketPrice, trades]);
+
+  // Add function to update trade profit
+  const updateTradeProfit = (id: string, profit: number) => {
+    setTrades(currentTrades => 
+      currentTrades.map(trade => 
+        trade.id === id 
+          ? { ...trade, profit } 
+          : trade
+      )
+    );
+  };
+
   // Handle order submission
   const handleSubmit = async () => {
-    try {
-      setIsLoading(true)
-
-      // Validate inputs
-      if (orderType !== "market" && (!price || Number.parseFloat(price) <= 0)) {
-        throw new Error("Please enter a valid price")
-      }
-
-      if (!amount || Number.parseFloat(amount) <= 0) {
-        throw new Error("Please enter a valid amount")
-      }
-
-      if (orderType === "stop" && (!stopPrice || Number.parseFloat(stopPrice) <= 0)) {
-        throw new Error("Please enter a valid stop price")
-      }
-
-      // Create order object
-      const order = {
-        market,
-        side,
-        type: orderType,
-        size: amount,
-        price: orderType !== "market" ? price : undefined,
-        stop_price: orderType === "stop" ? stopPrice : undefined,
-        post_only: isPostOnly,
-        reduce_only: isReduceOnly,
-      }
-
-      // Execute order
-      const result = await executeOrder(order)
-      console.log(`${result}`)
-
-      toast.success("Order Submitted",{
-        description: `Your ${side} order has been submitted successfully.`,
-      })
-
-      // Reset form
-      setAmount("")
-      setTotal("")
-      setSliderValue(0)
-    } catch (error: any) {
-      toast.error("Order Failed",{
-        description: error.message || "Failed to submit order. Please try again.",
-      })
-      console.error("Failed to submit order:", error)
-    } finally {
-      setIsLoading(false)
+    if (!isConnected || !address) {
+      toast.error('Please connect your wallet');
+      return;
     }
-  }
+
+    try {
+      setIsLoading(true);
+
+      // Validate trade
+      const tradeAmount = Number(amount);
+      const tradePrice = Number(price || marketPrice);
+      const totalCost = tradeAmount * tradePrice;
+      const tp = takeProfitPrice ? Number(takeProfitPrice) : undefined;
+      const sl = stopLossPrice ? Number(stopLossPrice) : undefined;
+
+      if (totalCost > accountBalance) {
+        throw new Error('Insufficient funds');
+      }
+
+      // Validate SL/TP
+      if (side === 'buy') {
+        if (tp && tp <= tradePrice) {
+          throw new Error('Take profit must be higher than entry price for buy orders');
+        }
+        if (sl && sl >= tradePrice) {
+          throw new Error('Stop loss must be lower than entry price for buy orders');
+        }
+      } else {
+        if (tp && tp >= tradePrice) {
+          throw new Error('Take profit must be lower than entry price for sell orders');
+        }
+        if (sl && sl <= tradePrice) {
+          throw new Error('Stop loss must be higher than entry price for sell orders');
+        }
+      }
+
+      // Sign message
+      await signMessage({ 
+        message: `Execute ${side} order for ${amount} ${market} at ${price || 'market'} price` 
+      });
+
+      // Add trade to store
+      addTrade({
+        symbol: market,
+        type: side,
+        amount: tradeAmount,
+        price: tradePrice,
+        takeProfit: tp,
+        stopLoss: sl
+      });
+
+      toast.success('Trade executed successfully');
+      
+      // Reset form
+      setAmount('');
+      setTotal('');
+      setSliderValue(0);
+      setTakeProfitPrice('');
+      setStopLossPrice('');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to execute trade');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Buy/Sell toggle */}
       <div className="flex rounded-md overflow-hidden">
         <Button
@@ -267,6 +337,34 @@ export default function OrderForm({ market, orderType, prefilledValues }: OrderF
           />
         </div>
 
+        {/* Take Profit field */}
+        <div>
+          <Label htmlFor="takeProfit">Take Profit ({quoteCurrency})</Label>
+          <Input
+            id="takeProfit"
+            type="number"
+            placeholder="0.00"
+            value={takeProfitPrice}
+            onChange={(e) => setTakeProfitPrice(e.target.value)}
+            step="0.01"
+            min="0"
+          />
+        </div>
+
+        {/* Stop Loss field */}
+        <div>
+          <Label htmlFor="stopLoss">Stop Loss ({quoteCurrency})</Label>
+          <Input
+            id="stopLoss"
+            type="number"
+            placeholder="0.00"
+            value={stopLossPrice}
+            onChange={(e) => setStopLossPrice(e.target.value)}
+            step="0.01"
+            min="0"
+          />
+        </div>
+
         {/* Amount slider */}
         <div className="pt-2">
           <div className="flex justify-between text-sm text-muted-foreground mb-2">
@@ -308,6 +406,12 @@ export default function OrderForm({ market, orderType, prefilledValues }: OrderF
         {isLoading ? <ArrowUpDown className="mr-2 h-4 w-4 animate-spin" /> : null}
         {side === "buy" ? "Buy" : "Sell"} {baseCurrency}
       </Button>
+
+      {/* Add TradeManager below the order form */}
+      <div className="mt-8 border-t border-border pt-6">
+        <TradeManager />
+      </div>
     </div>
   )
 }
+

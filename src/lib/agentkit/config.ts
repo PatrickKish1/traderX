@@ -32,9 +32,9 @@ export const getAgentConfig = (): AgentConfig => {
 
   return {
     chain: IS_PROD ? 'base' : 'base-sepolia',
-    apiKey: process.env.COINBASE_API_KEY!,
-    privateKey: process.env.AGENT_PRIVATE_KEY!,
-    walletSecret: process.env.CDP_WALLET_SECRET!,
+    apiKey: process.env.COINBASE_TOKEN!,
+    privateKey: process.env.BASE_SECRET!,
+    walletSecret: process.env.SECRET_KEY!,
     openSeaApiKey: process.env.OPENSEA_API_KEY,
   };
 };

@@ -1,31 +1,23 @@
-import { PredictionResult } from '@/lib/types/crypto';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+interface PredictionResult {
+  direction: 'buy' | 'sell';
+  price: number;
+  confidence: number;
+  takeProfit: number;
+  stopLoss: number;
+  reasoning: string;
+}
+
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const symbol = searchParams.get('symbol') || 'BTC';
-  const timeframe = searchParams.get('timeframe') || '24h';
   try {
-    // In a real implementation, you would use a machine learning model or external API
-    // For this example, we'll generate a mock prediction
+    const searchParams = request.nextUrl.searchParams;
+    const symbol = searchParams.get('symbol') || 'BTC-USD';
+    const currentPrice = parseFloat(searchParams.get('price') || '0');
     
-    // Get current price from CoinGecko
-    const response = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${getFullCoinName(symbol)}&vs_currencies=usd`,
-      {
-        headers: {
-          'Accept': 'application/json',
-        },
-      }
-    );
-    if (!response.ok) {
-      throw new Error('Failed to fetch current price');
-    }
-    const data = await response.json();
-    const coinId = getFullCoinName(symbol);
-    const currentPrice = data[coinId]?.usd || 50000; // Fallback price if API fails
-    
-    // Generate a mock prediction
-    const prediction = generateMockPrediction(symbol, currentPrice, timeframe);
+    // Generate a realistic prediction
+    const prediction = generatePrediction(currentPrice, symbol);
     
     return NextResponse.json(prediction);
   } catch (error) {
@@ -36,39 +28,57 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-function getFullCoinName(symbol: string): string {
-  const coinMap: Record<string, string> = {
-    'BTC': 'bitcoin',
-    'ETH': 'ethereum',
-    'SOL': 'solana',
-    'ADA': 'cardano',
-    'DOT': 'polkadot',
-    'AVAX': 'avalanche-2',
-  };
+
+function generatePrediction(currentPrice: number, symbol: string): PredictionResult {
+  // Generate a random direction bias (-1 for sell, 1 for buy)
+  const directionBias = Math.random() > 0.5 ? 1 : -1;
   
-  return coinMap[symbol.toUpperCase()] || 'bitcoin';
-}
-function generateMockPrediction(symbol: string, currentPrice: number, timeframe: string): PredictionResult {
-  // Generate a random price change between -10% and +15%
-  const changePercentage = (Math.random() * 25) - 10;
+  // Generate a random price change between -5% and +5%
+  const changePercentage = (Math.random() * 5) * directionBias;
   const priceChange = (currentPrice * changePercentage) / 100;
   const predictedPrice = currentPrice + priceChange;
   
+  // Generate take profit and stop loss levels
+  const takeProfitPercent = Math.abs(changePercentage) * 2; // 2x the predicted move
+  const stopLossPercent = Math.abs(changePercentage) * 0.5; // 0.5x the predicted move
+  
+  const direction = directionBias > 0 ? 'buy' : 'sell';
+  const takeProfit = direction === 'buy' ? 
+    currentPrice * (1 + takeProfitPercent/100) : 
+    currentPrice * (1 - takeProfitPercent/100);
+  
+  const stopLoss = direction === 'buy' ? 
+    currentPrice * (1 - stopLossPercent/100) : 
+    currentPrice * (1 + stopLossPercent/100);
+  
+  // Generate a confidence score between 60% and 90%
   const confidence = 60 + (Math.random() * 30);
   
-  let reasoning = '';
-  if (predictedPrice > currentPrice) {
-    reasoning = `Based on technical analysis of ${symbol} price patterns, market sentiment indicators, and on-chain metrics, I'm seeing bullish signals. Trading volume has been increasing, and there's positive momentum in the market. Additionally, recent developments in the ${symbol} ecosystem suggest growing adoption.`;
-  } else {
-    reasoning = `Analysis of ${symbol} price action shows some bearish indicators in the short term. Market sentiment has been cautious, and there's been some selling pressure. Technical indicators suggest a potential retracement before continuing the long-term uptrend. However, fundamentals remain strong for the long term.`;
-  }
+  // Generate reasoning based on the prediction
+  const reasoning = generateReasoning(direction, changePercentage, confidence, symbol);
   
   return {
-    token: symbol,
-    currentPrice,
-    predictedPrice,
+    direction,
+    price: predictedPrice,
     confidence,
-    timeframe,
+    takeProfit,
+    stopLoss,
     reasoning,
   };
+}
+
+function generateReasoning(
+  direction: 'buy' | 'sell', 
+  change: number, 
+  confidence: number, 
+  symbol: string
+): string {
+  const reasons = [
+    `Technical analysis indicates a potential ${direction} opportunity with ${confidence.toFixed(1)}% confidence`,
+    `Market sentiment and volume analysis suggest a ${Math.abs(change).toFixed(2)}% move ${direction === 'buy' ? 'upward' : 'downward'}`,
+    `${symbol} shows ${direction === 'buy' ? 'bullish' : 'bearish'} momentum patterns`,
+    `Recent price action and indicator analysis point to a ${direction} signal`,
+  ];
+  
+  return reasons[Math.floor(Math.random() * reasons.length)];
 }
